@@ -18,6 +18,16 @@ data modify storage dc:index keylist append value "<name>"
 >注：键前方的括号为键值类型，在compound后面带有冒号的为结构模板，只在第一次出现时解析其结构，后面则省略；
 ```snbt
 (compound) :{  //索引数据
+    (string) type:<"regular"|"hitbox"|"fixed"|"light"> //(默认为regular)模型类型。hitbox类型拥有碰撞箱，需要额外设置碰撞箱参数，fixed类型拥有1格完整碰撞箱，不可移动和缩放，交互框大小固定为1*1。"light"类型可以提供光照，其他与"fixed"类型相似，不可移动和缩放，交互框大小固定为1*1。只有类型相同的模型才可互相转换。
+    (compound) extra_data:{ //（可选）在"type"非"regular"时，需要提供的额外数据。
+        当"type"为"hitbox"时：
+        (float)width:1f, //碰撞箱宽度
+        (float)offset:0f //碰撞箱的偏移量，可为负值。
+        当"type"为"fixed"时，没有额外参数。
+        当"type"为"light"时：
+        (byte) level:15b //（值域0-15，默认值15）光源亮度；
+        (boolean) hitbox:0b //（默认0）是否有碰撞箱，设置为1时拥有一个碰撞箱。
+    }
     (string) template:"basic",//(可选)模板名称，关于模板的详细信息见下；
     (compound:item) item:{ //显示的模型对应的物品数据，格式与一般物品格式相同，无slot标签。
         (string) id:"minecraft:stone", //物品的id
@@ -35,10 +45,15 @@ data modify storage dc:index keylist append value "<name>"
         (float) width:1f 
     },
     (compound)prop:{ //模型属性
-        height_adaption:0b //设为1时，垂直旋转时碰撞箱高度随之调整
+        (boolean)height_adaption:0b //设为1时，垂直旋转时碰撞箱高度随之调整
     }
     (compound) events:{ //事件
         (compound list:event) construct:[ //放置时默认执行的事件，如播放声音等
+            {
+                ...
+            }
+        ],
+        (compound list:event) update:[ //在模型更新时执行的事件，旋转、缩放、转换等事件会触发更新行为
             {
                 ...
             }
@@ -75,12 +90,19 @@ data modify storage dc:index keylist append value "<name>"
 
 #### 索引使用
 加载完成后即可使用该索引生成模型。
-可以以任何方式生成一个带有指定数据的标记(marker)(即带有dc_place标签，data中指定索引)，即可生成指定的自定义模型。
-此处以刷怪蛋为例：
+可以以任何方式生成一个带有指定数据的标记(marker)或物品展示框(item_frame)**(仅支持1.21.5+)**(即带有dc_place标签，data中指定索引)，即可生成指定的自定义模型。
 
 ```mcfunction
 /give @s minecraft:cow_spawn_egg[entity_data={id:"minecraft:marker",Tags:["dc_place"],data:{index:"#YOURINDEX#"}}]
 ```
+
+```mcfunction
+/give @s minecraft:item_frame[entity_data={id:"minecraft:item_frame",Tags:["dc_place"],data:{index:"#YOURINDEX#"}}]
+```
+
+#### 模型类型
+在dc2.0.0以后，引入了三种新的模型类型，其中`Fixed`和`Light`类型为固定模型，推荐通过物品展示框生成。
+
 
 #### 索引数据继承
 在标记实体中可以使用一个inheritance字段，语法和索引注册数据相同，在模型生成的时候会被合并进数据中。可用于特定物品单独设置一些数据。
